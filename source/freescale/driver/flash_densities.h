@@ -54,6 +54,8 @@
 //! @endcode
 extern const uint16_t kFlashDensities[];
 
+#define KB 1024
+
 #endif /* _FLASH_DENSITIES_H_ */
 ////////////////////////////////////////////////////////////////////////////////
 // EOF
