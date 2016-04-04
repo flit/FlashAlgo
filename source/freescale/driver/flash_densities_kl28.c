@@ -38,24 +38,23 @@
 // See flash_densities.h for documentation of this table
 // Note: This table only applies to KL28.
 const uint16_t kFlashDensities[] = {
-        2,  // 0 - 8192
-        4,  // 1 - 16384
-        0,  // 2 - reserved
-        8,  // 3 - 32768
-        0,  // 4 - reserved
-        16, // 5 - 65536
-        0,  // 6 - reserved
-        32, // 7 - 131072
-        0,  // 8 - reserved
-        64, // 9 - 262144
-        128,// 0xa - 524288
-        0,  // 0xb - reserved
-        0,  // 0xc - reserved
-        0,  // 0xd - reserved
-        0,  // 0xe - reserved
-        128,// 0x0f - 524288, which is the maximum flash size supported by KL28
+        0,             // 0x0 - reserved
+        0,             // 0x1 - reserved
+        0,             // 0x2 - reserved
+        0,             // 0x3 - reserved
+        0,             // 0x4 - reserved
+        64*KB  >> 12,  // 0x5 - reserved
+        0,             // 0x6 - reserved
+        128*KB >> 12,  // 0x7 - reserved
+        0,             // 0x8 - reserved
+        256*KB >> 12,  // 0x9 - reserved
+        0,             // 0xa - Early drafts of the RM incorrectly documented 512KB as 0xa
+        512*KB >> 12,  // 0xb - 1.1 silicon
+        0,             // 0xc - reserved
+        0,             // 0xd - reserved
+        0,             // 0xe - reserved
+        512*KB >> 12,  // 0xf - 1.0 silicon accidentally uses this. RM says it should use 0xb
     };
-
 ////////////////////////////////////////////////////////////////////////////////
 // EOF
 ////////////////////////////////////////////////////////////////////////////////
