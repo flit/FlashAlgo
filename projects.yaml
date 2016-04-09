@@ -131,3 +131,7 @@ projects:
         - *module_tools
         - records/projects/nxp/common/nxp_flash_driver.yaml
         - records/projects/nxp/targets/lpc4088.yaml
+    lpc5410x:
+        - *module_tools
+        - records/projects/nxp/common/nxp_flash_driver.yaml
+        - records/projects/nxp/targets/lpc5410x.yaml

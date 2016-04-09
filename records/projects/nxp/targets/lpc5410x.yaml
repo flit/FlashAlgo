@@ -1,0 +1,16 @@
+common:
+    target:
+        - cortex-m0plus
+    includes:
+        - source/nxp/lpc5410x/lpc_chip_5410x
+    sources:
+        - source/nxp/lpc5410x/FlashDev.c
+        - source/nxp/lpc5410x/FlashPrg.c
+        - source/nxp/lpc5410x/lpc_chip_5410x/iap.c
+        - source/nxp/lpc5410x/lpc_chip_5410x/chip_5410x.c
+        - source/nxp/lpc5410x/lpc_chip_5410x/clock_5410x.c
+        - source/nxp/lpc5410x/lpc_chip_5410x/pll_5410x.c
+    macros:
+        - __NO_EMBEDDED_ASM
+        - __LPC5410X__
+        - CORE_M0PLUS
