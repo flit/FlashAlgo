@@ -1,0 +1,8 @@
+common:
+    target:
+        - cortex-m4
+    includes:
+        - source/freescale/devices/MK28F15
+    macros:
+        - __NO_EMBEDDED_ASM
+        - CPU_MK28FN2M0VMI15
