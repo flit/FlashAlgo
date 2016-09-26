@@ -1,0 +1,8 @@
+common:
+    target:
+        - cortex-m0
+    includes:
+        - source/freescale/devices/MKL82Z7
+    macros:
+        - __NO_EMBEDDED_ASM
+        - CPU_MKL82Z128VLK7
