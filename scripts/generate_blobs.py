@@ -18,7 +18,7 @@ limitations under the License.
 This script takes the path to file(s) created by an image conversion tool
 (fromelf or arm-elf-objcopy) as input. These files (bin and text) are used
 to create flash programming blobs (instruction arrays) which are then
-loaded into the target MCU RAM. Generates files compatible with C programs 
+loaded into the target MCU RAM. Generates files compatible with C programs
 and python programs (DAPLink Interface Firmware and pyDAPFlash)
 '''
 from struct import unpack
@@ -82,7 +82,7 @@ class FlashInfo(object):
 
 def generate_blob(template_path_file, ext, data):
     output = data['dir'] + '\\' + data['name'] + '_prog_blob.' + ext
-    
+
     ''' Fills data to the project template, using jinja2. '''
     template_path = template_path_file
     template_text = open(template_path).read()
@@ -99,11 +99,11 @@ def decode_axf(string):
     PRG_CODE_PATH = join(ELF_PATH, 'PrgCode')
     ALGO_SYM_PATH = join(ELF_PATH, 'symbols')
     SP = BLOB_START + 2048
-    
+
     # print some info about the build
     flash_info = FlashInfo(DEV_DSCR_PATH)
     flash_info.printInfo()
-    
+
     # prepare data to write to the template
     dic = {}
     dic['name'] = ELF_PATH.split('\\')[-1]
@@ -126,17 +126,20 @@ def decode_axf(string):
                 dic['mem'] += '0x%08x' % bytes_read[i] + ', '
                 nb_bytes += 4
                 if (nb_bytes % 0x20) == 0:
+                    dic['mem'] = dic['mem'][:-1]
                     dic['mem'] += '\n    '
 
+
             bytes_read = f1.read(1024)
-                
+        dic['mem'] = dic['mem'][:-1]
+
         # Address of the functions within the flash algorithm
         with open(ALGO_SYM_PATH, 'rb') as f2:
             for line in list(f2):
                 t = line.strip().split()
-                if len(t) < 5: 
+                if len(t) < 5:
                     continue
-                
+
                 name, loc, sec = t[1], t[2], t[4]
                 if name in ['Init', 'UnInit', 'EraseChip', 'EraseSector', 'ProgramPage', 'Verify']:
                     addr = BLOB_START + ALGO_OFFSET + int(loc, 16)
@@ -148,13 +151,13 @@ def decode_axf(string):
                         if dic['name'] == 'lpc4088':
                             dic['static_base'] = '0x%08x' % ( (int(loc, 16) + 0x100) & 0xffffff00 )
 
-    # order the flash programming functions - known order 
+    # order the flash programming functions - known order
     #dic['func'] = collections.OrderedDict(sorted(dic['func'].items()))
     return dic
 
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv) < 2:
         print 'usage: >python gen_algo.py <abs_path_bin_algo_info> <BLOB_START_ADDRESS>'
         sys.exit()
@@ -164,6 +167,6 @@ if __name__ == '__main__':
     print "blob_start = ", BLOB_START
 
     data = decode_axf(sys.argv[1])
-    generate_blob(os.path.dirname(os.path.realpath(__file__)) + '\\' + 'c_blob.tmpl', 'h', data)
+    generate_blob(os.path.dirname(os.path.realpath(__file__)) + '\\' + 'c_blob.tmpl', 'c', data)
     generate_blob(os.path.dirname(os.path.realpath(__file__)) + '\\' + 'py_blob.tmpl', 'py', data)
 
