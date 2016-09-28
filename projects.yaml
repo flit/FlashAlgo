@@ -106,7 +106,7 @@ projects:
     mk28f15:
         - *module_tools
         - records/projects/freescale/common/fsl_flash_driver.yaml
-        - records/projects/freescale/targets/mk28f15.yaml        
+        - records/projects/freescale/targets/mk28f15.yaml
     mk64f12:
         - *module_tools
         - records/projects/freescale/common/fsl_flash_driver.yaml
@@ -127,6 +127,10 @@ projects:
         - *module_tools
         - records/projects/freescale/common/fsl_flash_driver.yaml
         - records/projects/freescale/targets/mk80f25615.yaml
+    mk82f25615:
+        - *module_tools
+        - records/projects/freescale/common/fsl_flash_driver.yaml
+        - records/projects/freescale/targets/mk82f25615.yaml
     lpc1114fn28:
         - *module_tools
         - records/projects/nxp/common/nxp_flash_driver.yaml
