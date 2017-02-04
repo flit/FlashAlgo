@@ -1,0 +1,8 @@
+common:
+    target:
+        - cortex-m4
+    includes:
+        - source/freescale/devices/MKW24D5
+    macros:
+        - __NO_EMBEDDED_ASM
+        - CPU_MKW24D512VHA5
