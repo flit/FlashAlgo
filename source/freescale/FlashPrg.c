@@ -51,6 +51,9 @@ uint32_t Init(uint32_t adr, uint32_t clk, uint32_t fnc)
 #endif
 
 #if FSL_FEATURE_SOC_SMC_COUNT > 0
+#if !defined(SMC) && defined(SMC0)
+    #define SMC (SMC0)
+#endif
     // Check for an exit VLPR mode. Devices can be configured to boot into VLPR via the FOPT field,
     // but flash cannot be programmed in VLPR.
     g_wasInVlpr = ((SMC->PMCTRL & SMC_PMCTRL_RUNM_MASK) == SMC_PMCTRL_RUNM_VLPR);
@@ -139,10 +142,10 @@ uint32_t UnInit(uint32_t fnc)
  */
 uint32_t EraseChip(void)
 {
-    int status = FLASH_EraseAll(&g_flash, kFLASH_apiEraseKey);
+    int status = FLASH_EraseAll(&g_flash, kFLASH_ApiEraseKey);
     if (status == kStatus_Success)
     {
-        status = FLASH_VerifyEraseAll(&g_flash, kFLASH_marginValueNormal);
+        status = FLASH_VerifyEraseAll(&g_flash, kFLASH_MarginValueNormal);
     }
     return status;
 }
@@ -155,10 +158,10 @@ uint32_t EraseChip(void)
  */
 uint32_t EraseSector(uint32_t adr)
 {
-    int status = FLASH_Erase(&g_flash, adr, g_flash.PFlashSectorSize, kFLASH_apiEraseKey);
+    int status = FLASH_Erase(&g_flash, adr, g_flash.PFlashSectorSize, kFLASH_ApiEraseKey);
     if (status == kStatus_Success)
     {
-        status = FLASH_VerifyErase(&g_flash, adr, g_flash.PFlashSectorSize, kFLASH_marginValueNormal);
+        status = FLASH_VerifyErase(&g_flash, adr, g_flash.PFlashSectorSize, kFLASH_MarginValueNormal);
     }
     return status;
 }
@@ -177,7 +180,7 @@ uint32_t ProgramPage(uint32_t adr, uint32_t sz, uint32_t *buf)
     {
         // Must use kFlashMargin_User, or kFlashMargin_Factory for verify program
         status = FLASH_VerifyProgram(&g_flash, adr, sz,
-                              buf, kFLASH_marginValueUser,
+                              buf, kFLASH_MarginValueUser,
                               NULL, NULL);
     }
     return status;
