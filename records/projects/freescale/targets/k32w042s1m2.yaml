@@ -1,0 +1,8 @@
+common:
+    target:
+        - cortex-m0
+    includes:
+        - source/freescale/devices/K32W042S1M2
+    macros:
+        - __NO_EMBEDDED_ASM
+        - CPU_K32W042S1M2CAx_M0P
