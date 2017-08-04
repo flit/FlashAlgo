@@ -1,35 +1,35 @@
 /*
 ** ###################################################################
-**     Processors:          K32W042S1M2CAx_M0P
-**                          K32W042S1M2VPJ_M0P
+**     Processors:          K32W042S1M2CAx_cm0plus
+**                          K32W042S1M2VPJ_cm0plus
 **
 **     Compilers:           Keil ARM C/C++ Compiler
 **                          GNU C Compiler
 **                          IAR ANSI C/C++ Compiler for ARM
 **                          MCUXpresso Compiler
 **
-**     Reference manual:    K32W0x2S Series Reference Manual, Rev. 0 , 11/2016
+**     Reference manual:    K32W0x2S Series Reference Manual, Rev. 1.1 , 05/2017
 **     Version:             rev. 1.0, 2016-11-02
-**     Build:               b170112
+**     Build:               b170713
 **
 **     Abstract:
 **         Provides a system configuration function and a global variable that
 **         contains the system frequency. It configures the device and initializes
 **         the oscillator (PLL) that is part of the microcontroller device.
 **
-**     Copyright (c) 2016 Freescale Semiconductor, Inc.
-**     Copyright 2016 - 2017 NXP
+**     Copyright 2016 Freescale Semiconductor, Inc.
+**     Copyright 2016-2017 NXP
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
 **
-**     o Redistributions of source code must retain the above copyright notice, this list
+**     1. Redistributions of source code must retain the above copyright notice, this list
 **       of conditions and the following disclaimer.
 **
-**     o Redistributions in binary form must reproduce the above copyright notice, this
+**     2. Redistributions in binary form must reproduce the above copyright notice, this
 **       list of conditions and the following disclaimer in the documentation and/or
 **       other materials provided with the distribution.
 **
-**     o Neither the name of the copyright holder nor the names of its
+**     3. Neither the name of the copyright holder nor the names of its
 **       contributors may be used to endorse or promote products derived from this
 **       software without specific prior written permission.
 **
@@ -55,18 +55,19 @@
 */
 
 /*!
- * @file K32W042S1M2_M0P
+ * @file K32W042S1M2_cm0plus
  * @version 1.0
  * @date 2016-11-02
- * @brief Device specific configuration file for K32W042S1M2_M0P (header file)
+ * @brief Device specific configuration file for K32W042S1M2_cm0plus (header
+ *        file)
  *
  * Provides a system configuration function and a global variable that contains
  * the system frequency. It configures the device and initializes the oscillator
  * (PLL) that is part of the microcontroller device.
  */
 
-#ifndef _SYSTEM_K32W042S1M2_M0P_H_
-#define _SYSTEM_K32W042S1M2_M0P_H_               /**< Symbol preventing repeated inclusion */
+#ifndef _SYSTEM_K32W042S1M2_cm0plus_H_
+#define _SYSTEM_K32W042S1M2_cm0plus_H_           /**< Symbol preventing repeated inclusion */
 
 #ifdef __cplusplus
 extern "C" {
@@ -124,4 +125,4 @@ void SystemCoreClockUpdate (void);
 }
 #endif
 
-#endif  /* _SYSTEM_K32W042S1M2_M0P_H_ */
+#endif  /* _SYSTEM_K32W042S1M2_cm0plus_H_ */

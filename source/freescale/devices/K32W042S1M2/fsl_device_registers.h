@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2014 - 2016, Freescale Semiconductor, Inc.
- * Copyright 2016 - 2017 NXP
+ * Copyright 2014-2016 Freescale Semiconductor, Inc.
+ * Copyright 2016-2017 NXP
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
  *
- * o Redistributions of source code must retain the above copyright notice, this list
+ * 1. Redistributions of source code must retain the above copyright notice, this list
  *   of conditions and the following disclaimer.
  *
- * o Redistributions in binary form must reproduce the above copyright notice, this
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this
  *   list of conditions and the following disclaimer in the documentation and/or
  *   other materials provided with the distribution.
  *
- * o Neither the name of the copyright holder nor the names of its
+ * 3. Neither the name of the copyright holder nor the names of its
  *   contributors may be used to endorse or promote products derived from this
  *   software without specific prior written permission.
  *
@@ -36,23 +36,23 @@
  *
  * The CPU macro should be declared in the project or makefile.
  */
-#if (defined(CPU_K32W042S1M2CAx_M0P) || defined(CPU_K32W042S1M2VPJ_M0P))
+#if (defined(CPU_K32W042S1M2CAx_cm0plus) || defined(CPU_K32W042S1M2VPJ_cm0plus))
 
-#define K32W042S1M2_M0P_SERIES
-
-/* CMSIS-style register definitions */
-#include "K32W042S1M2_M0P.h"
-/* CPU specific feature definitions */
-#include "K32W042S1M2_M0P_features.h"
-
-#elif (defined(CPU_K32W042S1M2CAx_M4) || defined(CPU_K32W042S1M2VPJ_M4))
-
-#define K32W042S1M2_M4_SERIES
+#define K32W042S1M2_cm0plus_SERIES
 
 /* CMSIS-style register definitions */
-#include "K32W042S1M2_M4.h"
+#include "K32W042S1M2_cm0plus.h"
 /* CPU specific feature definitions */
-#include "K32W042S1M2_M4_features.h"
+#include "K32W042S1M2_cm0plus_features.h"
+
+#elif (defined(CPU_K32W042S1M2CAx_cm4) || defined(CPU_K32W042S1M2VPJ_cm4))
+
+#define K32W042S1M2_cm4_SERIES
+
+/* CMSIS-style register definitions */
+#include "K32W042S1M2_cm4.h"
+/* CPU specific feature definitions */
+#include "K32W042S1M2_cm4_features.h"
 
 #else
     #error "No valid CPU defined!"
