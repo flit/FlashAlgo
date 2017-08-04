@@ -119,12 +119,12 @@
 #define SECONDARY_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT
 #endif
 #else
-#define MAIN_FLASH_FEATURE_START_ADDRESS FSL_FEATURE_FLASH_PFLASH_START_ADDRESS
-#define MAIN_FLASH_FEATURE_BLOCK_COUNT FSL_FEATURE_FLASH_PFLASH_BLOCK_COUNT
-#define MAIN_FLASH_FEATURE_BLOCK_SIZE FSL_FEATURE_FLASH_PFLASH_BLOCK_SIZE
-#define MAIN_FLASH_FEATURE_BLOCK_SECTOR_SIZE FSL_FEATURE_FLASH_PFLASH_BLOCK_SECTOR_SIZE
-#define MAIN_FLASH_FEATURE_BLOCK_WRITE_UNIT_SIZE FSL_FEATURE_FLASH_PFLASH_BLOCK_WRITE_UNIT_SIZE
-#define MAIN_FLASH_FEATURE_PROTECTION_REGION_COUNT FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT
+#define MAIN_FLASH_FEATURE_PFLASH_START_ADDRESS FSL_FEATURE_FLASH_PFLASH_START_ADDRESS
+#define MAIN_FLASH_FEATURE_PFLASH_BLOCK_COUNT FSL_FEATURE_FLASH_PFLASH_BLOCK_COUNT
+#define MAIN_FLASH_FEATURE_PFLASH_BLOCK_SIZE FSL_FEATURE_FLASH_PFLASH_BLOCK_SIZE
+#define MAIN_FLASH_FEATURE_PFLASH_BLOCK_SECTOR_SIZE FSL_FEATURE_FLASH_PFLASH_BLOCK_SECTOR_SIZE
+#define MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE FSL_FEATURE_FLASH_PFLASH_BLOCK_WRITE_UNIT_SIZE
+#define MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT
 #endif
 /*@}*/
 
@@ -450,7 +450,8 @@ static void flash_cache_clear_process(flash_config_t *config, flash_cache_clear_
 static status_t flash_check_range(flash_config_t *config,
                                   uint32_t startAddress,
                                   uint32_t lengthInBytes,
-                                  uint32_t alignmentBaseline);
+                                  uint32_t alignmentBaseline,
+                                  flash_operation_config_t *info);
 /*! @brief Gets the right address, sector and block size of current flash type which is indicated by address.*/
 static status_t flash_get_matched_operation_info(flash_config_t *config,
                                                  uint32_t address,
@@ -684,33 +685,33 @@ status_t FLASH_Init(flash_config_t *config)
         return kStatus_FLASH_InvalidArgument;
     }
 
-#if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED
-    if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
-    {
-/* calculate the flash density from SIM_FCFG1.PFSIZE */
-#if defined(SIM_FCFG1_CORE1_PFSIZE_MASK)
-        uint32_t flashDensity;
-        uint8_t pfsize = (SIM->FCFG1 & SIM_FCFG1_CORE1_PFSIZE_MASK) >> SIM_FCFG1_CORE1_PFSIZE_SHIFT;
-        if (pfsize == 0xf)
-        {
-            flashDensity = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_COUNT * SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_SIZE;
-        }
-        else
-        {
-            flashDensity = ((uint32_t)kPFlashDensities[pfsize]) << 10;
-        }
-        config->PFlashTotalSize = flashDensity;
-#else
-        /* Unused code to solve MISRA-C issue*/
-        config->PFlashBlockBase = kPFlashDensities[0];
-        config->PFlashTotalSize = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_COUNT * SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_SIZE;
-#endif
-        config->PFlashBlockBase = SECONDARY_FLASH_FEATURE_PFLASH_START_ADDRESS;
-        config->PFlashBlockCount = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_COUNT;
-        config->PFlashSectorSize = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_SECTOR_SIZE;
-    }
-    else
-#endif /* FLASH_SSD_IS_SECONDARY_FLASH_ENABLED */
+// #if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED
+//     if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
+//     {
+// /* calculate the flash density from SIM_FCFG1.PFSIZE */
+// #if defined(SIM_FCFG1_CORE1_PFSIZE_MASK)
+//         uint32_t flashDensity;
+//         uint8_t pfsize = (SIM->FCFG1 & SIM_FCFG1_CORE1_PFSIZE_MASK) >> SIM_FCFG1_CORE1_PFSIZE_SHIFT;
+//         if (pfsize == 0xf)
+//         {
+//             flashDensity = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_COUNT * SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_SIZE;
+//         }
+//         else
+//         {
+//             flashDensity = ((uint32_t)kPFlashDensities[pfsize]) << 10;
+//         }
+//         config->PFlashTotalSize = flashDensity;
+// #else
+//         /* Unused code to solve MISRA-C issue*/
+//         config->PFlashBlockBase = kPFlashDensities[0];
+//         config->PFlashTotalSize = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_COUNT * SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_SIZE;
+// #endif
+//         config->PFlashBlockBase = SECONDARY_FLASH_FEATURE_PFLASH_START_ADDRESS;
+//         config->PFlashBlockCount = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_COUNT;
+//         config->PFlashSectorSize = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_SECTOR_SIZE;
+//     }
+//     else
+// #endif /* FLASH_SSD_IS_SECONDARY_FLASH_ENABLED */
     {
         uint32_t flashDensity;
 
@@ -859,7 +860,7 @@ status_t FLASH_Erase(flash_config_t *config, uint32_t start, uint32_t lengthInBy
     flash_get_matched_operation_info(config, start, &flashOperationInfo);
 
     /* Check the supplied address range. */
-    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.sectorCmdAddressAligment);
+    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.sectorCmdAddressAligment, &flashOperationInfo);
     if (returnCode)
     {
         return returnCode;
@@ -998,7 +999,7 @@ status_t FLASH_Program(flash_config_t *config, uint32_t start, uint32_t *src, ui
     flash_get_matched_operation_info(config, start, &flashOperationInfo);
 
     /* Check the supplied address range. */
-    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.blockWriteUnitSize);
+    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.blockWriteUnitSize, &flashOperationInfo);
     if (returnCode)
     {
         return returnCode;
@@ -1104,7 +1105,7 @@ status_t FLASH_ProgramSection(flash_config_t *config, uint32_t start, uint32_t *
     flash_get_matched_operation_info(config, start, &flashOperationInfo);
 
     /* Check the supplied address range. */
-    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.sectionCmdAddressAligment);
+    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.sectionCmdAddressAligment, &flashOperationInfo);
     if (returnCode)
     {
         return returnCode;
@@ -1486,13 +1487,13 @@ status_t FLASH_VerifyErase(flash_config_t *config, uint32_t start, uint32_t leng
 
     flash_get_matched_operation_info(config, start, &flashOperationInfo);
 
-    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.sectionCmdAddressAligment);
+    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.sectionCmdAddressAligment, &flashOperationInfo);
     if (returnCode)
     {
         return returnCode;
     }
 
-    flash_get_matched_operation_info(config, start, &flashOperationInfo);
+//     flash_get_matched_operation_info(config, start, &flashOperationInfo);
     start = flashOperationInfo.convertedAddress;
     blockSize = flashOperationInfo.activeBlockSize;
 
@@ -1552,7 +1553,7 @@ status_t FLASH_VerifyProgram(flash_config_t *config,
 
     flash_get_matched_operation_info(config, start, &flashOperationInfo);
 
-    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.checkCmdAddressAligment);
+    returnCode = flash_check_range(config, start, lengthInBytes, flashOperationInfo.checkCmdAddressAligment, &flashOperationInfo);
     if (returnCode)
     {
         return returnCode;
@@ -1606,321 +1607,321 @@ status_t FLASH_VerifyEraseAllExecuteOnlySegments(flash_config_t *config, flash_m
     return flash_command_sequence(config);
 }
 
-status_t FLASH_IsProtected(flash_config_t *config,
-                           uint32_t start,
-                           uint32_t lengthInBytes,
-                           flash_protection_state_t *protection_state)
-{
-    uint32_t endAddress;           /* end address for protection check */
-    uint32_t regionCheckedCounter; /* increments each time the flash address was checked for
-                                    * protection status */
-    uint32_t regionCounter;        /* incrementing variable used to increment through the flash
-                                    * protection regions */
-    uint32_t protectStatusCounter; /* increments each time a flash region was detected as protected */
-
-    uint8_t flashRegionProtectStatus[MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT]; /* array of the protection
-                                                                      * status for each
-                                                                      * protection region */
-    uint32_t flashRegionAddress[MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT +
-                                1];                /* array of the start addresses for each flash
-                                 * protection region. Note this is REGION_COUNT+1
-                                 * due to requiring the next start address after
-                                 * the end of flash for loop-check purposes below */
-    flash_protection_config_t flashProtectionInfo; /* flash protection information */
-    status_t returnCode;
-
-    if (protection_state == NULL)
-    {
-        return kStatus_FLASH_InvalidArgument;
-    }
-
-    /* Check the supplied address range. */
-    returnCode = flash_check_range(config, start, lengthInBytes, MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE);
-    if (returnCode)
-    {
-        return returnCode;
-    }
-
-    /* Get necessary flash protection information. */
-    returnCode = flash_get_protection_info(config, &flashProtectionInfo);
-    if (returnCode)
-    {
-        return returnCode;
-    }
-
-    /* calculating Flash end address */
-    endAddress = start + lengthInBytes;
-
-    /* populate the flashRegionAddress array with the start address of each flash region */
-    regionCounter = 0; /* make sure regionCounter is initialized to 0 first */
-
-    /* populate up to 33rd element of array, this is the next address after end of flash array */
-    while (regionCounter <= flashProtectionInfo.regionCount)
-    {
-        flashRegionAddress[regionCounter] =
-            flashProtectionInfo.regionBase + flashProtectionInfo.regionSize * regionCounter;
-        regionCounter++;
-    }
-
-    /* populate flashRegionProtectStatus array with status information
-     * Protection status for each region is stored in the FPROT[3:0] registers
-     * Each bit represents one region of flash
-     * 4 registers * 8-bits-per-register = 32-bits (32-regions)
-     * The convention is:
-     * FPROT3[bit 0] is the first protection region (start of flash memory)
-     * FPROT0[bit 7] is the last protection region (end of flash memory)
-     * regionCounter is used to determine which FPROT[3:0] register to check for protection status
-     * Note: FPROT=1 means NOT protected, FPROT=0 means protected */
-    regionCounter = 0; /* make sure regionCounter is initialized to 0 first */
-    while (regionCounter < flashProtectionInfo.regionCount)
-    {
-#if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED && FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_PROTECTION_REGISTER
-        if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
-        {
-            if (regionCounter < 8)
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTSL_REG >> regionCounter) & (0x01u);
-            }
-            else if ((regionCounter >= 8) && (regionCounter < 16))
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTSH_REG >> (regionCounter - 8)) & (0x01u);
-            }
-            else
-            {
-                break;
-            }
-        }
-        else
-#endif
-        {
-            /* Note: So far protection region count may be 16/20/24/32/64 */
-            if (regionCounter < 8)
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL3_REG >> regionCounter) & (0x01u);
-            }
-            else if ((regionCounter >= 8) && (regionCounter < 16))
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL2_REG >> (regionCounter - 8)) & (0x01u);
-            }
-#if defined(MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT) && (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT > 16)
-#if (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT == 20)
-            else if ((regionCounter >= 16) && (regionCounter < 20))
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL1_REG >> (regionCounter - 16)) & (0x01u);
-            }
-#else
-            else if ((regionCounter >= 16) && (regionCounter < 24))
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL1_REG >> (regionCounter - 16)) & (0x01u);
-            }
-#endif /* (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT == 20) */
-#endif
-#if defined(MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT) && (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT > 24)
-            else if ((regionCounter >= 24) && (regionCounter < 32))
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL0_REG >> (regionCounter - 24)) & (0x01u);
-            }
-#endif
-#if defined(MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT) && \
-    (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT == 64)
-            else if (regionCounter < 40)
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH3_REG >> (regionCounter - 32)) & (0x01u);
-            }
-            else if (regionCounter < 48)
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH2_REG >> (regionCounter - 40)) & (0x01u);
-            }
-            else if (regionCounter < 56)
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH1_REG >> (regionCounter - 48)) & (0x01u);
-            }
-            else if (regionCounter < 64)
-            {
-                flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH0_REG >> (regionCounter - 56)) & (0x01u);
-            }
-#endif
-            else
-            {
-                break;
-            }
-        }
-
-        regionCounter++;
-    }
-
-    /* loop through the flash regions and check
-     * desired flash address range for protection status
-     * loop stops when it is detected that start has exceeded the endAddress */
-    regionCounter = 0; /* make sure regionCounter is initialized to 0 first */
-    regionCheckedCounter = 0;
-    protectStatusCounter = 0; /* make sure protectStatusCounter is initialized to 0 first */
-    while (start < endAddress)
-    {
-        /* check to see if the address falls within this protection region
-         * Note that if the entire flash is to be checked, the last protection
-         * region checked would consist of the last protection start address and
-         * the start address following the end of flash */
-        if ((start >= flashRegionAddress[regionCounter]) && (start < flashRegionAddress[regionCounter + 1]))
-        {
-            /* increment regionCheckedCounter to indicate this region was checked */
-            regionCheckedCounter++;
-
-            /* check the protection status of this region
-             * Note: FPROT=1 means NOT protected, FPROT=0 means protected */
-            if (!flashRegionProtectStatus[regionCounter])
-            {
-                /* increment protectStatusCounter to indicate this region is protected */
-                protectStatusCounter++;
-            }
-            start += flashProtectionInfo.regionSize; /* increment to an address within the next region */
-        }
-        regionCounter++; /* increment regionCounter to check for the next flash protection region */
-    }
-
-    /* if protectStatusCounter == 0, then no region of the desired flash region is protected */
-    if (protectStatusCounter == 0)
-    {
-        *protection_state = kFLASH_ProtectionStateUnprotected;
-    }
-    /* if protectStatusCounter == regionCheckedCounter, then each region checked was protected */
-    else if (protectStatusCounter == regionCheckedCounter)
-    {
-        *protection_state = kFLASH_ProtectionStateProtected;
-    }
-    /* if protectStatusCounter != regionCheckedCounter, then protection status is mixed
-     * In other words, some regions are protected while others are unprotected */
-    else
-    {
-        *protection_state = kFLASH_ProtectionStateMixed;
-    }
-
-    return (returnCode);
-}
-
-status_t FLASH_IsExecuteOnly(flash_config_t *config,
-                             uint32_t start,
-                             uint32_t lengthInBytes,
-                             flash_execute_only_access_state_t *access_state)
-{
-#if defined(FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL) && FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL
-    flash_access_config_t flashAccessInfo; /* flash Execute-Only information */
-#endif                                     /* FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL */
-    status_t returnCode;
-
-    if (access_state == NULL)
-    {
-        return kStatus_FLASH_InvalidArgument;
-    }
-
-    /* Check the supplied address range. */
-    returnCode = flash_check_range(config, start, lengthInBytes, MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE);
-    if (returnCode)
-    {
-        return returnCode;
-    }
-
-#if defined(FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL) && FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL
-    /* Get necessary flash Execute-Only information. */
-    returnCode = flash_get_access_info(config, &flashAccessInfo);
-    if (returnCode)
-    {
-        return returnCode;
-    }
-
-    {
-        uint32_t executeOnlySegmentCounter = 0;
-
-        /* calculating end address */
-        uint32_t endAddress = start + lengthInBytes;
-
-        /* Aligning start address and end address */
-        uint32_t alignedStartAddress = ALIGN_DOWN(start, flashAccessInfo.SegmentSize);
-        uint32_t alignedEndAddress = ALIGN_UP(endAddress, flashAccessInfo.SegmentSize);
-
-        uint32_t segmentIndex = 0;
-        uint32_t maxSupportedExecuteOnlySegmentCount =
-            (alignedEndAddress - alignedStartAddress) / flashAccessInfo.SegmentSize;
-
-        while (start < endAddress)
-        {
-            uint32_t xacc;
-            bool isInvalidSegmentIndex = false;
-
-            segmentIndex = (start - flashAccessInfo.SegmentBase) / flashAccessInfo.SegmentSize;
-
-#if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED && FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_ACCESS_REGISTER
-            if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
-            {
-                /* For secondary flash, The two XACCS registers allow up to 16 restricted segments of equal memory size.
-                 */
-                if (segmentIndex < 8)
-                {
-                    xacc = *(const volatile uint8_t *)&FTFx_XACCSL_REG;
-                }
-                else if (segmentIndex < flashAccessInfo.SegmentCount)
-                {
-                    xacc = *(const volatile uint8_t *)&FTFx_XACCSH_REG;
-                    segmentIndex -= 8;
-                }
-                else
-                {
-                    isInvalidSegmentIndex = true;
-                }
-            }
-            else
-#endif
-            {
-                /* For primary flash, The eight XACC registers allow up to 64 restricted segments of equal memory size.
-                 */
-                if (segmentIndex < 32)
-                {
-                    xacc = *(const volatile uint32_t *)&FTFx_XACCL3_REG;
-                }
-                else if (segmentIndex < flashAccessInfo.SegmentCount)
-                {
-                    xacc = *(const volatile uint32_t *)&FTFx_XACCH3_REG;
-                    segmentIndex -= 32;
-                }
-                else
-                {
-                    isInvalidSegmentIndex = true;
-                }
-            }
-
-            if (isInvalidSegmentIndex)
-            {
-                break;
-            }
-
-            /* Determine if this address range is in a execute-only protection flash segment. */
-            if ((~xacc) & (1u << segmentIndex))
-            {
-                executeOnlySegmentCounter++;
-            }
-
-            start += flashAccessInfo.SegmentSize;
-        }
-
-        if (executeOnlySegmentCounter < 1u)
-        {
-            *access_state = kFLASH_AccessStateUnLimited;
-        }
-        else if (executeOnlySegmentCounter < maxSupportedExecuteOnlySegmentCount)
-        {
-            *access_state = kFLASH_AccessStateMixed;
-        }
-        else
-        {
-            *access_state = kFLASH_AccessStateExecuteOnly;
-        }
-    }
-#else
-    *access_state = kFLASH_AccessStateUnLimited;
-#endif /* FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL */
-
-    return (returnCode);
-}
+// status_t FLASH_IsProtected(flash_config_t *config,
+//                            uint32_t start,
+//                            uint32_t lengthInBytes,
+//                            flash_protection_state_t *protection_state)
+// {
+//     uint32_t endAddress;           /* end address for protection check */
+//     uint32_t regionCheckedCounter; /* increments each time the flash address was checked for
+//                                     * protection status */
+//     uint32_t regionCounter;        /* incrementing variable used to increment through the flash
+//                                     * protection regions */
+//     uint32_t protectStatusCounter; /* increments each time a flash region was detected as protected */
+//
+//     uint8_t flashRegionProtectStatus[MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT]; /* array of the protection
+//                                                                       * status for each
+//                                                                       * protection region */
+//     uint32_t flashRegionAddress[MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT +
+//                                 1];                /* array of the start addresses for each flash
+//                                  * protection region. Note this is REGION_COUNT+1
+//                                  * due to requiring the next start address after
+//                                  * the end of flash for loop-check purposes below */
+//     flash_protection_config_t flashProtectionInfo; /* flash protection information */
+//     status_t returnCode;
+//
+//     if (protection_state == NULL)
+//     {
+//         return kStatus_FLASH_InvalidArgument;
+//     }
+//
+//     /* Check the supplied address range. */
+//     returnCode = flash_check_range(config, start, lengthInBytes, MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE);
+//     if (returnCode)
+//     {
+//         return returnCode;
+//     }
+//
+//     /* Get necessary flash protection information. */
+//     returnCode = flash_get_protection_info(config, &flashProtectionInfo);
+//     if (returnCode)
+//     {
+//         return returnCode;
+//     }
+//
+//     /* calculating Flash end address */
+//     endAddress = start + lengthInBytes;
+//
+//     /* populate the flashRegionAddress array with the start address of each flash region */
+//     regionCounter = 0; /* make sure regionCounter is initialized to 0 first */
+//
+//     /* populate up to 33rd element of array, this is the next address after end of flash array */
+//     while (regionCounter <= flashProtectionInfo.regionCount)
+//     {
+//         flashRegionAddress[regionCounter] =
+//             flashProtectionInfo.regionBase + flashProtectionInfo.regionSize * regionCounter;
+//         regionCounter++;
+//     }
+//
+//     /* populate flashRegionProtectStatus array with status information
+//      * Protection status for each region is stored in the FPROT[3:0] registers
+//      * Each bit represents one region of flash
+//      * 4 registers * 8-bits-per-register = 32-bits (32-regions)
+//      * The convention is:
+//      * FPROT3[bit 0] is the first protection region (start of flash memory)
+//      * FPROT0[bit 7] is the last protection region (end of flash memory)
+//      * regionCounter is used to determine which FPROT[3:0] register to check for protection status
+//      * Note: FPROT=1 means NOT protected, FPROT=0 means protected */
+//     regionCounter = 0; /* make sure regionCounter is initialized to 0 first */
+//     while (regionCounter < flashProtectionInfo.regionCount)
+//     {
+// #if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED && FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_PROTECTION_REGISTER
+//         if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
+//         {
+//             if (regionCounter < 8)
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTSL_REG >> regionCounter) & (0x01u);
+//             }
+//             else if ((regionCounter >= 8) && (regionCounter < 16))
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTSH_REG >> (regionCounter - 8)) & (0x01u);
+//             }
+//             else
+//             {
+//                 break;
+//             }
+//         }
+//         else
+// #endif
+//         {
+//             /* Note: So far protection region count may be 16/20/24/32/64 */
+//             if (regionCounter < 8)
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL3_REG >> regionCounter) & (0x01u);
+//             }
+//             else if ((regionCounter >= 8) && (regionCounter < 16))
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL2_REG >> (regionCounter - 8)) & (0x01u);
+//             }
+// #if defined(MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT) && (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT > 16)
+// #if (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT == 20)
+//             else if ((regionCounter >= 16) && (regionCounter < 20))
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL1_REG >> (regionCounter - 16)) & (0x01u);
+//             }
+// #else
+//             else if ((regionCounter >= 16) && (regionCounter < 24))
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL1_REG >> (regionCounter - 16)) & (0x01u);
+//             }
+// #endif /* (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT == 20) */
+// #endif
+// #if defined(MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT) && (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT > 24)
+//             else if ((regionCounter >= 24) && (regionCounter < 32))
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTL0_REG >> (regionCounter - 24)) & (0x01u);
+//             }
+// #endif
+// #if defined(MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT) && \
+//     (MAIN_FLASH_FEATURE_PFLASH_PROTECTION_REGION_COUNT == 64)
+//             else if (regionCounter < 40)
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH3_REG >> (regionCounter - 32)) & (0x01u);
+//             }
+//             else if (regionCounter < 48)
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH2_REG >> (regionCounter - 40)) & (0x01u);
+//             }
+//             else if (regionCounter < 56)
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH1_REG >> (regionCounter - 48)) & (0x01u);
+//             }
+//             else if (regionCounter < 64)
+//             {
+//                 flashRegionProtectStatus[regionCounter] = (FTFx_FPROTH0_REG >> (regionCounter - 56)) & (0x01u);
+//             }
+// #endif
+//             else
+//             {
+//                 break;
+//             }
+//         }
+//
+//         regionCounter++;
+//     }
+//
+//     /* loop through the flash regions and check
+//      * desired flash address range for protection status
+//      * loop stops when it is detected that start has exceeded the endAddress */
+//     regionCounter = 0; /* make sure regionCounter is initialized to 0 first */
+//     regionCheckedCounter = 0;
+//     protectStatusCounter = 0; /* make sure protectStatusCounter is initialized to 0 first */
+//     while (start < endAddress)
+//     {
+//         /* check to see if the address falls within this protection region
+//          * Note that if the entire flash is to be checked, the last protection
+//          * region checked would consist of the last protection start address and
+//          * the start address following the end of flash */
+//         if ((start >= flashRegionAddress[regionCounter]) && (start < flashRegionAddress[regionCounter + 1]))
+//         {
+//             /* increment regionCheckedCounter to indicate this region was checked */
+//             regionCheckedCounter++;
+//
+//             /* check the protection status of this region
+//              * Note: FPROT=1 means NOT protected, FPROT=0 means protected */
+//             if (!flashRegionProtectStatus[regionCounter])
+//             {
+//                 /* increment protectStatusCounter to indicate this region is protected */
+//                 protectStatusCounter++;
+//             }
+//             start += flashProtectionInfo.regionSize; /* increment to an address within the next region */
+//         }
+//         regionCounter++; /* increment regionCounter to check for the next flash protection region */
+//     }
+//
+//     /* if protectStatusCounter == 0, then no region of the desired flash region is protected */
+//     if (protectStatusCounter == 0)
+//     {
+//         *protection_state = kFLASH_ProtectionStateUnprotected;
+//     }
+//     /* if protectStatusCounter == regionCheckedCounter, then each region checked was protected */
+//     else if (protectStatusCounter == regionCheckedCounter)
+//     {
+//         *protection_state = kFLASH_ProtectionStateProtected;
+//     }
+//     /* if protectStatusCounter != regionCheckedCounter, then protection status is mixed
+//      * In other words, some regions are protected while others are unprotected */
+//     else
+//     {
+//         *protection_state = kFLASH_ProtectionStateMixed;
+//     }
+//
+//     return (returnCode);
+// }
+//
+// status_t FLASH_IsExecuteOnly(flash_config_t *config,
+//                              uint32_t start,
+//                              uint32_t lengthInBytes,
+//                              flash_execute_only_access_state_t *access_state)
+// {
+// #if defined(FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL) && FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL
+//     flash_access_config_t flashAccessInfo; /* flash Execute-Only information */
+// #endif                                     /* FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL */
+//     status_t returnCode;
+//
+//     if (access_state == NULL)
+//     {
+//         return kStatus_FLASH_InvalidArgument;
+//     }
+//
+//     /* Check the supplied address range. */
+//     returnCode = flash_check_range(config, start, lengthInBytes, MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE);
+//     if (returnCode)
+//     {
+//         return returnCode;
+//     }
+//
+// #if defined(FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL) && FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL
+//     /* Get necessary flash Execute-Only information. */
+//     returnCode = flash_get_access_info(config, &flashAccessInfo);
+//     if (returnCode)
+//     {
+//         return returnCode;
+//     }
+//
+//     {
+//         uint32_t executeOnlySegmentCounter = 0;
+//
+//         /* calculating end address */
+//         uint32_t endAddress = start + lengthInBytes;
+//
+//         /* Aligning start address and end address */
+//         uint32_t alignedStartAddress = ALIGN_DOWN(start, flashAccessInfo.SegmentSize);
+//         uint32_t alignedEndAddress = ALIGN_UP(endAddress, flashAccessInfo.SegmentSize);
+//
+//         uint32_t segmentIndex = 0;
+//         uint32_t maxSupportedExecuteOnlySegmentCount =
+//             (alignedEndAddress - alignedStartAddress) / flashAccessInfo.SegmentSize;
+//
+//         while (start < endAddress)
+//         {
+//             uint32_t xacc;
+//             bool isInvalidSegmentIndex = false;
+//
+//             segmentIndex = (start - flashAccessInfo.SegmentBase) / flashAccessInfo.SegmentSize;
+//
+// #if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED && FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_ACCESS_REGISTER
+//             if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
+//             {
+//                 /* For secondary flash, The two XACCS registers allow up to 16 restricted segments of equal memory size.
+//                  */
+//                 if (segmentIndex < 8)
+//                 {
+//                     xacc = *(const volatile uint8_t *)&FTFx_XACCSL_REG;
+//                 }
+//                 else if (segmentIndex < flashAccessInfo.SegmentCount)
+//                 {
+//                     xacc = *(const volatile uint8_t *)&FTFx_XACCSH_REG;
+//                     segmentIndex -= 8;
+//                 }
+//                 else
+//                 {
+//                     isInvalidSegmentIndex = true;
+//                 }
+//             }
+//             else
+// #endif
+//             {
+//                 /* For primary flash, The eight XACC registers allow up to 64 restricted segments of equal memory size.
+//                  */
+//                 if (segmentIndex < 32)
+//                 {
+//                     xacc = *(const volatile uint32_t *)&FTFx_XACCL3_REG;
+//                 }
+//                 else if (segmentIndex < flashAccessInfo.SegmentCount)
+//                 {
+//                     xacc = *(const volatile uint32_t *)&FTFx_XACCH3_REG;
+//                     segmentIndex -= 32;
+//                 }
+//                 else
+//                 {
+//                     isInvalidSegmentIndex = true;
+//                 }
+//             }
+//
+//             if (isInvalidSegmentIndex)
+//             {
+//                 break;
+//             }
+//
+//             /* Determine if this address range is in a execute-only protection flash segment. */
+//             if ((~xacc) & (1u << segmentIndex))
+//             {
+//                 executeOnlySegmentCounter++;
+//             }
+//
+//             start += flashAccessInfo.SegmentSize;
+//         }
+//
+//         if (executeOnlySegmentCounter < 1u)
+//         {
+//             *access_state = kFLASH_AccessStateUnLimited;
+//         }
+//         else if (executeOnlySegmentCounter < maxSupportedExecuteOnlySegmentCount)
+//         {
+//             *access_state = kFLASH_AccessStateMixed;
+//         }
+//         else
+//         {
+//             *access_state = kFLASH_AccessStateExecuteOnly;
+//         }
+//     }
+// #else
+//     *access_state = kFLASH_AccessStateUnLimited;
+// #endif /* FSL_FEATURE_FLASH_HAS_ACCESS_CONTROL */
+//
+//     return (returnCode);
+// }
 
 status_t FLASH_GetProperty(flash_config_t *config, flash_property_tag_t whichProperty, uint32_t *value)
 {
@@ -2718,14 +2719,22 @@ static void copy_flash_common_bit_operation(uint32_t *flashCommonBitOperation)
 /*! @brief Performs the cache clear to the flash by MCM.*/
 void mcm_flash_cache_clear(flash_config_t *config)
 {
-    FTFx_REG32_ACCESS_TYPE regBase = (FTFx_REG32_ACCESS_TYPE)&MCM0_CACHE_REG;
-
-#if defined(MCM1_CACHE_REG)
-    if (config->FlashCacheControllerIndex == (uint8_t)kFLASH_CacheControllerIndexForCore1)
+    FTFx_REG32_ACCESS_TYPE regBase;
+    if (((MSCM->CPXTYPE & MSCM_CPXTYPE_PERSONALITY_MASK) >> MSCM_CPXTYPE_PERSONALITY_SHIFT) == 0x434d30)
     {
-        regBase = (FTFx_REG32_ACCESS_TYPE)&MCM1_CACHE_REG;
+        regBase = (FTFx_REG32_ACCESS_TYPE)0xf0003034; // CM0+ MCM1->CPCR2
     }
-#endif
+    else
+    {
+        regBase = (FTFx_REG32_ACCESS_TYPE)0xe0080034; // CM4 MCM0->CPCR2
+    }
+
+// #if defined(MCM0) && defined(MCM1)
+//     if (config->FlashCacheControllerIndex == (uint8_t)kFLASH_CacheControllerIndexForCore1)
+//     {
+//         regBase = (FTFx_REG32_ACCESS_TYPE)&MCM1_CACHE_REG;
+//     }
+// #endif
 
 #if FLASH_DRIVER_IS_FLASH_RESIDENT
     callFlashCommonBitOperation(regBase, MCM_CACHE_CLEAR_MASK, MCM_CACHE_CLEAR_SHIFT, 1U);
@@ -2798,7 +2807,7 @@ void mscm_flash_prefetch_speculation_enable(bool enable)
      * All Cache, Branch predictor and TLB maintenance operations before this instruction complete */
     __ISB();
     __DSB();
-#if FLASH_SSD_IS_FLEXNVM_ENABLED || BL_HAS_SECONDARY_INTERNAL_FLASH
+#if FLASH_SSD_IS_FLEXNVM_ENABLED || FLASH_SSD_IS_SECONDARY_FLASH_ENABLED
     MSCM->OCMDR[1] = (MSCM->OCMDR[1] & (~MSCM_SPECULATION_DISABLE_MASK)) | MSCM_SPECULATION_DISABLE(setValue);
 
     /* Each cahce clear instaruction should be followed by below code*/
@@ -2925,7 +2934,8 @@ static status_t flash_check_execute_in_ram_function_info(flash_config_t *config)
 static status_t flash_check_range(flash_config_t *config,
                                   uint32_t startAddress,
                                   uint32_t lengthInBytes,
-                                  uint32_t alignmentBaseline)
+                                  uint32_t alignmentBaseline,
+                                  flash_operation_config_t *info)
 {
     if (config == NULL)
     {
@@ -2944,8 +2954,10 @@ static status_t flash_check_range(flash_config_t *config,
         ((startAddress >= config->DFlashBlockBase) &&
          ((startAddress + lengthInBytes) <= (config->DFlashBlockBase + config->DFlashTotalSize))) ||
 #endif
-        ((startAddress >= config->PFlashBlockBase) &&
-         ((startAddress + lengthInBytes) <= (config->PFlashBlockBase + config->PFlashTotalSize))))
+//         ((startAddress >= config->PFlashBlockBase) &&
+//          ((startAddress + lengthInBytes) <= (config->PFlashBlockBase + config->PFlashTotalSize))))
+        ((startAddress >= info->activeArrayStart) &&
+         ((startAddress + lengthInBytes) <= (info->activeArrayStart + info->activeArraySize))))
     {
         return kStatus_FLASH_Success;
     }
@@ -2984,25 +2996,36 @@ static status_t flash_get_matched_operation_info(flash_config_t *config,
     else
 #endif /* FLASH_SSD_IS_FLEXNVM_ENABLED */
     {
-        info->convertedAddress = address - config->PFlashBlockBase;
-        info->activeSectorSize = config->PFlashSectorSize;
-        info->activeBlockSize = config->PFlashTotalSize / config->PFlashBlockCount;
+            info->convertedAddress = address & 0x7fffffU;
+//         info->convertedAddress = address; // - config->PFlashBlockBase;
+//         info->activeSectorSize = config->PFlashSectorSize;
+//         info->activeBlockSize = config->PFlashTotalSize / config->PFlashBlockCount;
 #if FLASH_SSD_IS_SECONDARY_FLASH_ENABLED
-        if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
+        if ((address >= FSL_FEATURE_FLASH_PFLASH_START_ADDRESS) && (address < (FSL_FEATURE_FLASH_PFLASH_START_ADDRESS + (FSL_FEATURE_FLASH_PFLASH_BLOCK_COUNT * FSL_FEATURE_FLASH_PFLASH_BLOCK_SIZE))))
+//         if (config->FlashMemoryIndex == (uint8_t)kFLASH_MemoryIndexSecondaryFlash)
         {
-#if FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_PROTECTION_REGISTER || FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_ACCESS_REGISTER
+// #if FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_PROTECTION_REGISTER || FLASH_SSD_SECONDARY_FLASH_HAS_ITS_OWN_ACCESS_REGISTER
             /* When required by the command, address bit 23 selects between main flash memory
              * (=0) and secondary flash memory (=1).*/
-            info->convertedAddress += 0x800000U;
-#endif
-            info->blockWriteUnitSize = SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE;
+            info->convertedAddress |= 0x800000U;
+// #endif
+            info->activeArrayStart = FSL_FEATURE_FLASH_PFLASH_START_ADDRESS;
+            info->activeArraySize = FSL_FEATURE_FLASH_PFLASH_BLOCK_COUNT * FSL_FEATURE_FLASH_PFLASH_BLOCK_SIZE;
+            info->activeSectorSize = FSL_FEATURE_FLASH_PFLASH_BLOCK_SECTOR_SIZE;
+            info->activeBlockSize = FSL_FEATURE_FLASH_PFLASH_BLOCK_SIZE;
+            info->blockWriteUnitSize = FSL_FEATURE_FLASH_PFLASH_BLOCK_WRITE_UNIT_SIZE; //SECONDARY_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE;
         }
         else
 #endif /* FLASH_SSD_IS_SECONDARY_FLASH_ENABLED */
         {
-            info->blockWriteUnitSize = MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE;
+            info->activeArrayStart = FSL_FEATURE_FLASH_PFLASH_1_START_ADDRESS;
+            info->activeArraySize = FSL_FEATURE_FLASH_PFLASH_1_BLOCK_COUNT * FSL_FEATURE_FLASH_PFLASH_1_BLOCK_SIZE;
+            info->activeSectorSize = FSL_FEATURE_FLASH_PFLASH_1_BLOCK_SECTOR_SIZE;
+            info->activeBlockSize = FSL_FEATURE_FLASH_PFLASH_1_BLOCK_SIZE;
+            info->blockWriteUnitSize = FSL_FEATURE_FLASH_PFLASH_1_BLOCK_WRITE_UNIT_SIZE;// MAIN_FLASH_FEATURE_PFLASH_BLOCK_WRITE_UNIT_SIZE;
         }
 
+        // TODO Need to add corresponding features for secondary flash.
         info->sectorCmdAddressAligment = FSL_FEATURE_FLASH_PFLASH_SECTOR_CMD_ADDRESS_ALIGMENT;
         info->sectionCmdAddressAligment = FSL_FEATURE_FLASH_PFLASH_SECTION_CMD_ADDRESS_ALIGMENT;
         info->resourceCmdAddressAligment = FSL_FEATURE_FLASH_PFLASH_RESOURCE_CMD_ADDRESS_ALIGMENT;

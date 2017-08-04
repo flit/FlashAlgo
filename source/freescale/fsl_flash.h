@@ -551,6 +551,8 @@ typedef struct _flash_operation_config
     uint32_t convertedAddress;           /*!< A converted address for the current flash type.*/
     uint32_t activeSectorSize;           /*!< A sector size of the current flash type.*/
     uint32_t activeBlockSize;            /*!< A block size of the current flash type.*/
+    uint32_t activeArrayStart;
+    uint32_t activeArraySize;
     uint32_t blockWriteUnitSize;         /*!< The write unit size.*/
     uint32_t sectorCmdAddressAligment;   /*!< An erase sector command address alignment.*/
     uint32_t sectionCmdAddressAligment;  /*!< A program/verify section command address alignment.*/
