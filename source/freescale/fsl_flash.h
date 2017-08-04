@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013-2016, Freescale Semiconductor, Inc.
- * Copyright 2016 NXP
+ * Copyright 2016-2017 NXP
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -110,7 +110,7 @@ enum _flash_driver_version_constants
 #if (defined(BL_TARGET_ROM) || defined(BL_TARGET_FLASH))
 #define FLASH_DRIVER_IS_EXPORTED 1 /*!< Used for the ROM bootloader. */
 #else
-#define FLASH_DRIVER_IS_EXPORTED 0 /*!< Used for the KSDK application. */
+#define FLASH_DRIVER_IS_EXPORTED 0 /*!< Used for the MCUXpresso SDK application. */
 #endif
 #endif
 /*@}*/
@@ -219,9 +219,9 @@ typedef enum _flash_margin_value
  */
 typedef enum _flash_security_state
 {
-    kFLASH_SecurityStateNotSecure,       /*!< Flash is not secure.*/
-    kFLASH_SecurityStateBackdoorEnabled, /*!< Flash backdoor is enabled.*/
-    kFLASH_SecurityStateBackdoorDisabled /*!< Flash backdoor is disabled.*/
+    kFLASH_SecurityStateNotSecure = 0xc33cc33cU,       /*!< Flash is not secure.*/
+    kFLASH_SecurityStateBackdoorEnabled = 0x5aa55aa5U, /*!< Flash backdoor is enabled.*/
+    kFLASH_SecurityStateBackdoorDisabled = 0x5ac33ca5U /*!< Flash backdoor is disabled.*/
 } flash_security_state_t;
 
 /*!
@@ -458,14 +458,13 @@ typedef union _pflash_protection_status_low
 typedef struct _pflash_protection_status
 {
     pflash_protection_status_low_t valueLow32b; /*!< PROT[31:0] or PROTS[15:0].*/
-#if ((FSL_FEATURE_FLASH_IS_FTFA == 1) && (defined(FTFA_FPROT_PROT_MASK))) || \
-    ((FSL_FEATURE_FLASH_IS_FTFE == 1) && (defined(FTFE_FPROT_PROT_MASK))) || \
-    ((FSL_FEATURE_FLASH_IS_FTFL == 1) && (defined(FTFL_FPROT_PROT_MASK)))
-    // uint32_t protHigh; /*!< PROT[63:32].*/
+#if ((FSL_FEATURE_FLASH_IS_FTFA == 1) && (defined(FTFA_FPROTH0_PROT_MASK))) || \
+    ((FSL_FEATURE_FLASH_IS_FTFE == 1) && (defined(FTFE_FPROTH0_PROT_MASK))) || \
+    ((FSL_FEATURE_FLASH_IS_FTFL == 1) && (defined(FTFL_FPROTH0_PROT_MASK)))
     struct
     {
         uint32_t proth32b;
-    } valueHigh32b;
+    } valueHigh32b; /*!< PROT[63:32].*/
 #endif
 } pflash_protection_status_t;
 
@@ -497,16 +496,13 @@ typedef enum _flash_cache_controller_index
     kFLASH_CacheControllerIndexForCore1 = 0x01U, /*!< Current flash cache controller is for core 1.*/
 } flash_cache_controller_index_t;
 
-/*! @brief A callback type used for the Pflash block*/
-typedef void (*flash_callback_t)(void);
-
 /*!
  * @brief Enumeration for the two possible options of flash prefetch speculation.
  */
 typedef enum _flash_prefetch_speculation_option
 {
-    kFLASH_prefetchSpeculationOptionEnable = 0x00000000U,
-    kFLASH_prefetchSpeculationOptionDisable = 0xFFFFFFFFU
+    kFLASH_prefetchSpeculationOptionEnable = 0x00U,
+    kFLASH_prefetchSpeculationOptionDisable = 0x01U
 } flash_prefetch_speculation_option_t;
 
 /*!
@@ -517,6 +513,15 @@ typedef struct _flash_prefetch_speculation_status
     flash_prefetch_speculation_option_t instructionOption; /*!< Instruction speculation.*/
     flash_prefetch_speculation_option_t dataOption;        /*!< Data speculation.*/
 } flash_prefetch_speculation_status_t;
+
+/*!
+ * @brief Flash cache clear process code.
+ */
+typedef enum _flash_cache_clear_process
+{
+    kFLASH_CacheClearProcessPre = 0x00U,  /*!< Pre flash cache clear process.*/
+    kFLASH_CacheClearProcessPost = 0x01U, /*!< Post flash cache clear process.*/
+} flash_cache_clear_process_t;
 
 /*!
  * @brief Active flash protection information for the current operation.
@@ -567,7 +572,7 @@ typedef struct _flash_config
     uint8_t FlashCacheControllerIndex;       /*!< 0 - Controller for core 0; 1 - Controller for core 1 */
     uint8_t Reserved0;                       /*!< Reserved field 0 */
     uint32_t PFlashSectorSize;               /*!< The size in bytes of a sector of PFlash. */
-    flash_callback_t PFlashCallback;         /*!< The callback function for the flash API. */
+    uint32_t Reserved1;                      /*!< Reserved field 1 */
     uint32_t PFlashAccessSegmentSize;        /*!< A size in bytes of an access segment of PFlash. */
     uint32_t PFlashAccessSegmentCount;       /*!< A number of PFlash access segments. */
     uint32_t *flashExecuteInRamFunctionInfo; /*!< An information structure of the flash execute-in-RAM function. */
@@ -611,17 +616,6 @@ extern "C" {
  * @retval #kStatus_FLASH_PartitionStatusUpdateFailure Failed to update the partition status.
  */
 status_t FLASH_Init(flash_config_t *config);
-
-/*!
- * @brief Sets the desired flash callback function.
- *
- * @param config Pointer to the storage for the driver runtime state.
- * @param callback A callback function to be stored in the driver.
- *
- * @retval #kStatus_FLASH_Success API was executed successfully.
- * @retval #kStatus_FLASH_InvalidArgument An invalid argument is provided.
- */
-status_t FLASH_SetCallback(flash_config_t *config, flash_callback_t callback);
 
 /*!
  * @brief Prepares flash execute-in-RAM functions.
