@@ -69,6 +69,11 @@ uint32_t Init(uint32_t adr, uint32_t clk, uint32_t fnc)
     }
 #endif // FSL_FEATURE_SOC_SMC_COUNT
 
+#if defined(MSCM_OCMDR_OCM1_MASK) || defined(MSCM_OCMDR_OCMC1_MASK) \
+	|| defined(K32W042S1M2_cm4_SERIES) || defined(K32W042S1M2_cm0plus_SERIES)
+    PCC_MSCM |= PCC_CLKCFG_CGC_MASK;
+#endif
+
     return (FLASH_Init(&g_flash) != kStatus_Success);
 }
 
@@ -142,11 +147,12 @@ uint32_t UnInit(uint32_t fnc)
  */
 uint32_t EraseChip(void)
 {
+#if defined(K32W042S1M2_cm4_SERIES) || defined(K32W042S1M2_cm0plus_SERIES)
+    // Must use EraseAllUnsecure because FSEC is in IFR.
+    int status = FLASH_EraseAllUnsecure(&g_flash, kFLASH_ApiEraseKey);
+#else
     int status = FLASH_EraseAll(&g_flash, kFLASH_ApiEraseKey);
-    if (status == kStatus_Success)
-    {
-        status = FLASH_VerifyEraseAll(&g_flash, kFLASH_MarginValueNormal);
-    }
+#endif
     return status;
 }
 
@@ -158,11 +164,9 @@ uint32_t EraseChip(void)
  */
 uint32_t EraseSector(uint32_t adr)
 {
-    int status = FLASH_Erase(&g_flash, adr, g_flash.PFlashSectorSize, kFLASH_ApiEraseKey);
-    if (status == kStatus_Success)
-    {
-        status = FLASH_VerifyErase(&g_flash, adr, g_flash.PFlashSectorSize, kFLASH_MarginValueNormal);
-    }
+    // Use a length of 16, which is sufficient to always pass the length
+    // and alignment checks for all flash arrays.
+    int status = FLASH_Erase(&g_flash, adr, 16, kFLASH_ApiEraseKey);
     return status;
 }
 
